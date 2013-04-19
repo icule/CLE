@@ -85,6 +85,7 @@ action *build_again_action(char *line){
 	}
 	data[i]='\0';
 	a->end=atoi(data);
+        printf(":%s:%d", data, a->end);
 	sizec+=i+1;
 	i=0;
 	
@@ -278,7 +279,7 @@ void writing_command(int fds,char* name_prog){
 			write(fd1,line,strlen(line));
 			write(fds,line,strlen(line));
 			free_action(action);
-			if(global_data->run)
+			if(global_data->state == RUN)
 				usleep((MAX_SPEED-global_data->speed)*10000);
 		}
 		
@@ -340,7 +341,6 @@ void read_info(int fdl,int fdw){
 	clear_listing(listing,50);
 	clear_listing(bool_listing,50);
 	do{
-		printf("Boucle attente niveau 2\nrun : %d\tgot : %d\tstep_by_step : %d\n",global_data->run,got,global_data->step_by_step);
 		if ((got = readline(fdl, buf, 500)) < 0){
       		got=1;
         }
@@ -375,13 +375,14 @@ void read_info(int fdl,int fdw){
 					bool_listing[pos]=1;
 			}
 			sprintf(line,"%d/%d/%s/%d/%d/%d/%d/%s\n",action->begin,action->pid_father,action->call,action->wait,action->pid_son,action->end,action->fd,action->message);
+                        printf("%s\n", line);
 			if((action->end && (strcmp(action->call,"clone") || action->pid_son!=0))|| !strcmp("wait4",action->call) || !strcmp("waitpid",action->call) || !strcmp("read",action->call) || !strcmp("write",action->call)){
 				write(fdw,line,strlen(line));
 			}
 			write(fd,line,strlen(line));
 			free_action(action);
 		}
-		if(global_data->run)
+		if(global_data->state == RUN)
 			usleep((MAX_SPEED-global_data->speed)*10000);
 	}
 	while(got>0);

@@ -43,12 +43,9 @@ int end_goal;
  */
 void* exercise_demo_runner(void *exo) {
   	printf("Launch of demo\n");
+        printf("%p\n", &(global_data->state));
 	entity_t t;
 	
-	global_data->stop=0;
-	global_data->run=1;
-	global_data->step_by_step=0;
-	global_data->isrunning=1;
 	end_goal = 0;
 	exercise_t e = exo;
 	demo_runner_running = (GMutex *)e->demo_runner_running;
@@ -92,14 +89,17 @@ void* exercise_demo_runner(void *exo) {
 	
 	/* Reset the goal world */
 	printf("End of compiling of teacher's sources\n");
+        printf("%d\n", global_data->state != DEMO);
 	world_free(e->w_goal[0]);
 	e->w_goal[0] = world_copy(e->w_init[0]);
 	world_set_step_delay(e->w_goal[0],50); /* FIXME: should be configurable from UI */
 	printf("Goal world rebuild\n");
+        printf("%d\n", global_data->state != DEMO);
 	
 	t=world_entity_geti(e->w_goal[0],0);
 	entity_set_world(t,(world_t)e->w_goal[0]);
 	printf("End of building begining turtles\n");
+        printf("%d\n", global_data->state != DEMO);
 	
 	if (pids)
 		free(pids);
@@ -107,11 +107,11 @@ void* exercise_demo_runner(void *exo) {
 	
 	int fd[2];
 	pipe(fd);
-	
+        printf("%d\n", global_data->state != DEMO);
 	param_execute_proc *pep = allocate_execute_proc(e->s_filename,fd[1]);
 	GThread *te = g_thread_create(execute_proc,(void*)pep,1,NULL);
 	printf("End of strace\n");
-	
+        printf("%d\n", global_data->state != DEMO);
 	if (pids)
 		free(pids);
 	pids=malloc (sizeof(pid_t)*world_get_amount_entity(e->w_curr[0]));
@@ -136,6 +136,7 @@ void* exercise_demo_runner(void *exo) {
 
 void exercise_demo(exercise_t exo) {
   	printf("Lock : %p\n", &binary);
+        printf("%d\n", global_data->state != DEMO);
 	exercise_t e = exo;
 	demo_runner_running = (GMutex *)e->demo_runner_running;
 	int res = g_mutex_trylock(demo_runner_running);
@@ -143,7 +144,7 @@ void exercise_demo(exercise_t exo) {
 		printf("Not restarting the demo (it's already running)\n");
 		return;
 	}
-
+	printf("%p\n", &(global_data->state));
 	/* Launch the demo (in a separate thread waiting for the completion of all turtles before re-enabling the button) */
 	g_thread_create(exercise_demo_runner,e,0,NULL);
 }
@@ -290,19 +291,19 @@ void forward_all_entities(entity_t *list, int size, int length){
 
 void *entity_fork_run(void *param){
 	param_runner *pr = param;
-    char* buf=malloc(512*sizeof(char));
+        char* buf=malloc(512*sizeof(char));
 	int got = 0,first=1;
 	action *action;
+        int amount_proc = 1;
 	/*creat("res/CLE2.txt",0666);
 	int fd1= open("res/CLE2.txt",O_WRONLY);*/
-	printf("Appel dessin : run : %d\tstop : %d\t step_by_step : %d\n",global_data->run,global_data->stop,global_data->step_by_step);
 	
 	/*Reading line by line the file descriptor who recieves the commands to draw the line
 	 * One line is only one command of a processus*/
+        printf("%d\n", global_data->state != DEMO);
 	do{
-		printf("Niveau 3 : run : %d\tstop : %d\t step_by_step : %d\n",global_data->run,global_data->stop,global_data->step_by_step);
-		while(!global_data->run && !global_data->stop && !global_data->step_by_step){
-			printf("Boucle attente niveau 3\n");
+          while(global_data->state != RUN && global_data->state != STOP && global_data->state != STEP_BY_STEP && global_data->state != DEMO){
+			printf("Boucle attente niveau 3 %d\n", amount_proc);
 			usleep(100000);
 		}
 		
@@ -314,7 +315,8 @@ void *entity_fork_run(void *param){
 			
         /*Reading ...*/
 		else if(got>0){
-			global_data->step_by_step = 0;
+                  if(global_data->state == STEP_BY_STEP)
+                    global_data->state = IDLE;
 			printf("Message recu niveau 3\n");
 			buf[got]='\0';
 					
@@ -330,6 +332,7 @@ void *entity_fork_run(void *param){
 			/*We recieve a real command*/
 			else{
 				action = build_again_action(buf);
+                                printf("::%d\n", action->end);
 							
 				/*Initialize the following lists*/
 				if(first){
@@ -362,6 +365,8 @@ void *entity_fork_run(void *param){
 					entity_forward(pr->list_t[pr->nb_t-1], world_get_sizeY((core_world_t)pr->w)*0.3/pow(2,nb_branch-1));
 					entity_right(pr->list_t[pr->nb_t-1], 90);
 					forward_all_entities(pr->list_t,pr->nb_t,5);
+                                        
+                                        ++amount_proc;
 					
 					char *line = malloc(MAX_LINE*sizeof(char));
 					sprintf(line,"Processus %d created : processus %d\n",action->pid_father,action->pid_son);
@@ -429,6 +434,8 @@ void *entity_fork_run(void *param){
 					int end;
 					int pos_gf;
 					tree_fork *gf;
+                                        --amount_proc;
+                                        printf("New amount of processes %d\n", amount_proc);
 					if(pos_f == -1 ){
 						printf("Error pid %d not found\n%s\n",action->pid_father,buf);
 						free(color);
@@ -477,10 +484,10 @@ void *entity_fork_run(void *param){
 				world_ask_repaint((core_world_t)pr->w);	
 			}
 		}
-		if(global_data->run)
+		if(global_data->state == RUN)
 			usleep((MAX_SPEED-global_data->speed)*10000);
 	}
-	while(got>0);
+	while(amount_proc);
 	printf("Fin d'execution de l'exercice\n");
     free(buf);
     return NULL;
@@ -524,7 +531,6 @@ void* exercise_run_runner(void *exo) {
 	printf("Launch all turtles\n");
 	/* Launch all the runners */
 	param_runner *pr = allocate_param_runner(t,fd[0],(world_t)e->w_curr[0]);
-	printf("run 3 : run : %d step_by_step : %d\n",global_data->run,global_data->step_by_step);
 	entity_fork_run((void*)pr);
 	
 	g_thread_join(te);
@@ -550,8 +556,7 @@ void* exercise_run_runner(void *exo) {
 	unlink(binary);
 	free(binary);
 	
-	global_data->isrunning = 0;
-	global_data->run = 0;
+	global_data->state = IDLE;
 	
 	return NULL;
 }
@@ -673,7 +678,10 @@ void exercise_add_world(exercise_t e, core_world_t world)
      temp[i] = e->w_goal[i];
    }
    temp[e->worldAmount-1] = world_copy(world);
+   global_data->state = DEMO; //FIXME avoid this dirty method
+   printf("%d\n", global_data->state != DEMO);
    (*(temp[e->worldAmount-1]->exercise_demo))(e);
+   global_data->state = IDLE;
    if(e->w_goal)
      free(e->w_goal);
    e->w_goal = temp;

@@ -21,11 +21,7 @@ cb_run_clicked(GtkButton *button) {
 	CLE_clear_worlds_mark();
 	CLE_clear_worlds_log();
 	char *source = CLE_get_sourcecode();
-	global_data->isrunning = 1;
-	global_data->run = 1;
-	global_data->step_by_step = 0;
-	global_data->stop = 0;
-	global_data->debug=0;
+	global_data->state = RUN;
 	GtkAdjustment *adj = CH_GET_OBJECT(global_data->builder, adjustment, GTK_ADJUSTMENT);
 	global_data->speed = (int)gtk_adjustment_get_value(adj);
 
@@ -44,11 +40,7 @@ cb_debug_clicked(GtkButton *button) {
   CLE_clear_worlds_mark();
   CLE_clear_worlds_log();
   char *source = CLE_get_sourcecode();
-  global_data->isrunning = 1;
-  global_data->run = 1;
-  global_data->step_by_step = 0;
-  global_data->stop = 0;
-  global_data->debug=1;
+  global_data->state = DEBUG;
   GtkAdjustment *adj = CH_GET_OBJECT(global_data->builder, adjustment, GTK_ADJUSTMENT);
   global_data->speed = (int)gtk_adjustment_get_value(adj);
   
@@ -66,10 +58,7 @@ cb_debug_clicked(GtkButton *button) {
 G_MODULE_EXPORT void
 cb_stop_clicked(GtkButton *button) {
 	printf("Stop clicked\n");
-	global_data->isrunning = 0;
-	global_data->stop=1;
-	global_data->run =0;
-	global_data->step_by_step = 0;
+	global_data->state = STOP;
 	(*(global_data->lesson->e_curr->w_curr[0]->exercise_stop))(global_data->lesson);
 }
 
@@ -77,7 +66,7 @@ G_MODULE_EXPORT void
 cb_demo_clicked(GtkButton *button) {
 	CLE_clear_worlds_mark();
 	CLE_clear_worlds_log();
-	global_data->debug=0;
+	global_data->state = DEMO;
 	/* Switch the notebook to the second page (which is #1), where the demo is */
 	gtk_notebook_set_current_page(global_data->world_views,1);
 	(*(global_data->lesson->e_curr->w_curr[0]->exercise_demo))(global_data->lesson->e_curr);
@@ -86,8 +75,7 @@ cb_demo_clicked(GtkButton *button) {
 G_MODULE_EXPORT void
 cb_step_by_step_clicked(GtkButton *button) {
 	printf("Step by step clicked\n");
-	
-	/* Switch the notebook to the first page (which is #0), where the student code runs */
+	/*
 	gtk_notebook_set_current_page(global_data->world_views,0);
 	
 	global_data->step_by_step = 1;
@@ -101,7 +89,7 @@ cb_step_by_step_clicked(GtkButton *button) {
 		// BEGINKILL
 		global_data->isrunning = 1;
 		(*(global_data->lesson->e_curr->w_curr[0]->exercise_run))(global_data->lesson->e_curr,source);
-	}
+	}*/
 }
 
 

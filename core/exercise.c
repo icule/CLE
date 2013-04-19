@@ -260,7 +260,7 @@ void *exercise_run_log_listener(void *d) {
   valgrind_log_s *vl = data->valgrind_log;
   
   
-  if(global_data->debug)
+  if(CLE_is_debug_mode())
   {
     CLE_clear_logs_of_world(vl->world_numero);
     CLE_free_mark_of_world(vl->world_numero);

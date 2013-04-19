@@ -15,6 +15,14 @@
 #include "core/lesson.h"
 #include "core/log.h"
 
+typedef enum{
+  IDLE,
+  RUN,
+  STEP_BY_STEP,
+  STOP,
+  DEBUG,
+  DEMO
+} CLE_state_s;
 
 typedef struct CLE_data CLE_data_t;
 CLE_data_t *global_data;
@@ -80,12 +88,8 @@ struct CLE_data
     lesson_t lesson;
     int current_world_expose;
     
+    CLE_state_s state;
     int speed;
-    int isrunning;
-    int step_by_step;
-    int stop;
-    int run;
-    int debug;
 };
 
 

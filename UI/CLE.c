@@ -48,11 +48,7 @@ int main(int argc, char **argv) {
     global_data->lesson = NULL;
     global_data->current_world_expose =0;
     global_data->speed =100;
-    global_data->stop =0;
-    global_data->run =0;
-    global_data->isrunning =0;
-    global_data->step_by_step = 0;
-    global_data->debug=0;
+    global_data->state = IDLE;
     global_data->worlds_log = NULL;
     global_data->worlds_mark = NULL;
     
@@ -163,7 +159,7 @@ int main(int argc, char **argv) {
 void CLE_set_lesson(lesson_t l) {
 	if (l==NULL) /* error while loading? */
 		return;
-	global_data->debug=0;
+	global_data->state = IDLE;
 	/* Change the data model */
 	if(global_data->lesson)
 		lesson_free(global_data->lesson);
@@ -192,7 +188,7 @@ void CLE_exercise_has_changed() {
 	GtkSourceBuffer *sb;
 
 	CLE_log_clear();
-	global_data->debug=0;
+	global_data->state = IDLE;
 
 	gtk_text_buffer_set_text(
 			gtk_text_view_get_buffer(GTK_TEXT_VIEW(global_data->mission_view)),
@@ -453,5 +449,5 @@ cb_menu_change_exercise(GtkMenuItem *menuitem, gpointer data) {
 
 int CLE_is_debug_mode()
 {
-  return global_data->debug;
+  return (global_data->state == DEBUG);
 }
