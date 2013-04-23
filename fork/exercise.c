@@ -36,19 +36,14 @@ static GMutex* run_runner_running;
 static char *binary; // The name of the binary
 static pid_t*pids;
 tree_fork *tree_c,*tree_t;
-int end_goal;
 
 /* Function launched in a separate thread to run the demo without locking the UI
  * It is in charge of starting a thread for each turtle to animate, and wait for their completion
  */
 void* exercise_demo_runner(void *exo) {
-  	printf("Launch of demo\n");
-        printf("%p\n", &(global_data->state));
 	entity_t t;
 	
-	end_goal = 0;
 	exercise_t e = exo;
-	demo_runner_running = (GMutex *)e->demo_runner_running;
 	if(e->s_filename==NULL){
 	  char *filename= generate_temporary_sourcefile_header(e, userside, NULL);
 	  char* binary_t = strdup("/tmp/CLEb.XXXXXX");
@@ -88,18 +83,13 @@ void* exercise_demo_runner(void *exo) {
 	}
 	
 	/* Reset the goal world */
-	printf("End of compiling of teacher's sources\n");
-        printf("%d\n", global_data->state != DEMO);
+	printf("%p\n", e->w_goal);
 	world_free(e->w_goal[0]);
 	e->w_goal[0] = world_copy(e->w_init[0]);
 	world_set_step_delay(e->w_goal[0],50); /* FIXME: should be configurable from UI */
-	printf("Goal world rebuild\n");
-        printf("%d\n", global_data->state != DEMO);
 	
 	t=world_entity_geti(e->w_goal[0],0);
 	entity_set_world(t,(world_t)e->w_goal[0]);
-	printf("End of building begining turtles\n");
-        printf("%d\n", global_data->state != DEMO);
 	
 	if (pids)
 		free(pids);
@@ -107,15 +97,11 @@ void* exercise_demo_runner(void *exo) {
 	
 	int fd[2];
 	pipe(fd);
-        printf("%d\n", global_data->state != DEMO);
 	param_execute_proc *pep = allocate_execute_proc(e->s_filename,fd[1]);
 	GThread *te = g_thread_create(execute_proc,(void*)pep,1,NULL);
-	printf("End of strace\n");
-        printf("%d\n", global_data->state != DEMO);
 	if (pids)
 		free(pids);
 	pids=malloc (sizeof(pid_t)*world_get_amount_entity(e->w_curr[0]));
-	printf("Launch all turtles\n");
 	/* Launch all the runners */
 	param_runner *pr= allocate_param_runner(t,fd[0],(world_t)e->w_goal[0]);
 	entity_fork_run(pr);
@@ -128,33 +114,27 @@ void* exercise_demo_runner(void *exo) {
 	/* Re-enable the run running button */
 	free_param_runner(pr);
 	world_set_step_delay(e->w_goal[0],0);
-	g_mutex_unlock(demo_runner_running);
-	end_goal=1;
-	printf("goal end!!\n");
+	g_mutex_unlock((GMutex*)e->demo_runner_running);
+	global_data->state = IDLE;
 	return NULL;
 }
 
 void exercise_demo(exercise_t exo) {
-  	printf("Lock : %p\n", &binary);
-        printf("%d\n", global_data->state != DEMO);
-	exercise_t e = exo;
-	demo_runner_running = (GMutex *)e->demo_runner_running;
-	int res = g_mutex_trylock(demo_runner_running);
+	int res = g_mutex_trylock((GMutex*)exo->demo_runner_running);
 	if (!res) {
 		printf("Not restarting the demo (it's already running)\n");
 		return;
 	}
-	printf("%p\n", &(global_data->state));
 	/* Launch the demo (in a separate thread waiting for the completion of all turtles before re-enabling the button) */
-	g_thread_create(exercise_demo_runner,e,0,NULL);
+	g_thread_create(exercise_demo_runner,exo,0,NULL);
 }
 
-void exercise_stop(struct s_lesson* lesson){
+void exercise_stop(lesson_t lesson){
   	lesson_t l = lesson;
   	if(exercise_demo_is_running(l->e_curr))
-      	exercise_demo_stop(l->e_curr);
+	  exercise_demo_stop(l->e_curr);
   	else
-      	exercise_run_stop(l->e_curr);
+	  exercise_run_stop(l->e_curr);
 }
 
 
@@ -504,8 +484,6 @@ param_execute_proc *allocate_execute_proc(char *binary,int fd){
  
 void* exercise_run_runner(void *exo) {
 	exercise_t e = exo;
-	while(!end_goal);
-	printf("goal end : %d\n",end_goal);
 	
 	entity_t t;
 	
@@ -572,7 +550,6 @@ void exercise_run_stop(exercise_t ex) {
 
 
 void exercise_run(exercise_t ex, char *source) {
-	// BEGINKILL
 	int status; // test whether they were compilation errors
 	exercise_t e = ex;
 	
@@ -643,7 +620,6 @@ void exercise_run(exercise_t ex, char *source) {
 
 	unlink(filename);
 	free(filename);
-	//ENDKILL
 }
 
 void exercise_add_world(exercise_t e, core_world_t world)
@@ -678,13 +654,13 @@ void exercise_add_world(exercise_t e, core_world_t world)
      temp[i] = e->w_goal[i];
    }
    temp[e->worldAmount-1] = world_copy(world);
-   global_data->state = DEMO; //FIXME avoid this dirty method
-   printf("%d\n", global_data->state != DEMO);
-   (*(temp[e->worldAmount-1]->exercise_demo))(e);
-   global_data->state = IDLE;
    if(e->w_goal)
      free(e->w_goal);
    e->w_goal = temp;
+   global_data->state = DEMO; //FIXME avoid this dirty method
+   (*(temp[e->worldAmount-1]->exercise_demo))(e);
+   g_mutex_lock(e->demo_runner_running);
+   g_mutex_unlock(e->demo_runner_running);
 }
 
 
