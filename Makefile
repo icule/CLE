@@ -29,11 +29,11 @@ CLE: $(CORE)
 	
 CLE.o: UI/CLE.c UI/CLE.h core/exercise.h core/lesson.h core/log.h core/mark.h
 	$(CC) $(CFLAGS) -c $< -o $@
-callbacks.o: UI/callbacks.c UI/CLE.h core/exercise.h core/lesson.h core/log.h
+callbacks.o: UI/callbacks.c UI/CLE.h core/exercise.h core/lesson.h core/log.h core/world.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 
-exercise.o: core/exercise.c core/exercise.h UI/CLE.h core/mark.h
+exercise.o: core/exercise.c core/exercise.h UI/CLE.h core/mark.h 
 	$(CC) $(CFLAGS) -c $< -o $@
 
 lesson.o: core/lesson.c core/lesson.h core/exercise.h UI/CLE.h
@@ -65,12 +65,12 @@ structUtility.o: Parser/structUtility.c Parser/structUtility.h Parser/parser.h
 # A first lesson plugin
 ########################
 logo.so: logo/logo.c $(LOGO_HEADERS) $(LOGO_CORE_SOURCE) $(LOGO_EXO_SOURCE)
-	gcc -shared -fPIC $(CFLAGS) -o $@ $^ -I.
+	gcc -shared -fPIC $(CFLAGS) -o $@ $^
 
 #Fork plugin lesson section
 ###########################
 fork.so: fork/fork.c $(FORK_HEADERS) $(FORK_CORE_SOURCE) $(FORK_EXO_SOURCE)
-	gcc -shared -fPIC $(CFLAGS) -o $@ $^ -I.
+	gcc -shared -fPIC $(CFLAGS) -o $@ $^
 
 
 clean: 

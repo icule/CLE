@@ -1,8 +1,6 @@
 #ifndef INCLUDED_LOG_H
 #define INCLUDED_LOG_H
 
-#include "UI/CLE.h"
-
 /*Remove and free all the lworlds log*/
 void CLE_clear_worlds_log();
 

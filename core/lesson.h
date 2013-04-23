@@ -10,7 +10,6 @@
 typedef struct s_lesson *lesson_t;
 
 #include "core/exercise.h"
-#include "core/world.h"
 
 #ifndef LESSON_H_
 #define LESSON_H_

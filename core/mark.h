@@ -1,7 +1,8 @@
 #ifndef INCLUDED_MARK_H
 #define INCLUDED_MARK_H
 
-#include "UI/CLE.h"
+#include <gtk/gtk.h>
+#include <gtksourceview/gtksourcemark.h>
 
 /* Remove the displayed mark of the world num_world */
 void CLE_clear_mark(int num_world);

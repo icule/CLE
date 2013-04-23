@@ -18,6 +18,4 @@ struct s_core_world{
     void (*exercise_demo)(exercise_t); /* Function used to run demo*/
 };
 
-int isSameWorld(core_world_t w1, core_world_t w2);
-
 #endif

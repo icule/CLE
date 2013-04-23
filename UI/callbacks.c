@@ -28,7 +28,6 @@ cb_run_clicked(GtkButton *button) {
 	/* Switch the notebook to the first page (which is #0), where the student code runs */
 	gtk_notebook_set_current_page(global_data->world_views,0);
 
-	printf("Execution\n");
 	(*(global_data->lesson->e_curr->w_curr[0]->exercise_run))(global_data->lesson->e_curr,source);
 
 	free(source);
